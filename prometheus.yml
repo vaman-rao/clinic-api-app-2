@@ -6,3 +6,7 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['clinic-api:9999']
+
+rule_files:
+  - "recording-rules.yml"
+  - "alert-rules.yml"          # (Day 3)

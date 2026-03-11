@@ -47,6 +47,7 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - ./recording-rules.yml:/etc/prometheus/recording-rules.yml
+      - ./alert-rules.yml:/etc/prometheus/alert-rules.yml    
 
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -54,13 +55,14 @@ services:
 
     depends_on:
       - clinic-api
+      - alertmanager 
 
   alertmanager:
     image: prom/alertmanager
     container_name: alertmanager
     volumes:
       - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
-      - ./secrets/smtp_password.txt:/run/secrets/smtp_password.txt  # mount the file
+      - ./secrets/smtp_password.txt:/run/secrets/smtp_password.txt  
     entrypoint: >
      sh -c "export SMTP_PASSWORD=$$(cat /run/secrets/smtp_password.txt) &&
      /bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml"

@@ -3,8 +3,8 @@
 global:
   smtp_smarthost: "smtp.gmail.com:587"
   smtp_from: "alerts@clinic.com"
-  smtp_auth_username: "alerts@clinic.com"
-  smtp_auth_password: "your-app-password"
+  smtp_auth_username: "vamanpundit@gmail.com"
+  smtp_auth_password: "${SMTP_PASSWORD}"
 
 # ── ROUTING ────────────────────────────────────────────────────────────────────
 # Routes define WHERE alerts go based on their labels.

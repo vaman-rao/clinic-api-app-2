@@ -54,3 +54,18 @@ services:
 
     depends_on:
       - clinic-api
+
+  alertmanager:
+    image: prom/alertmanager
+    container_name: alertmanager
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - ./secrets/smtp_password.txt:/run/secrets/smtp_password.txt  # mount the file
+    entrypoint: >
+     sh -c "export SMTP_PASSWORD=$$(cat /run/secrets/smtp_password.txt) &&
+     /bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml"
+    ports:
+      - "9093:9093"
+    restart: unless-stopped
+
+

@@ -1,0 +1,65 @@
+# alertmanager.yml
+
+global:
+  smtp_smarthost: "smtp.gmail.com:587"
+  smtp_from: "alerts@clinic.com"
+  smtp_auth_username: "alerts@clinic.com"
+  smtp_auth_password: "your-app-password"
+
+# ── ROUTING ────────────────────────────────────────────────────────────────────
+# Routes define WHERE alerts go based on their labels.
+route:
+  receiver: "default-email"            # fallback — catch all
+  group_by: ["alertname", "severity"]  # group alerts with same name+severity together
+  group_wait: 30s                      # wait 30s before sending first notification
+  group_interval: 5m                   # wait before sending re-notifications for same group
+  repeat_interval: 4h                  # repeat if alert is still firing after 4h
+
+  routes:
+    # Critical alerts go to Slack immediately
+    - match:
+        severity: critical
+      receiver: "slack-critical"
+      group_wait: 10s
+
+    # Business alerts go to a different Slack channel
+    - match_re:
+        alertname: "(HighAppointmentCancellationRate|AppointmentBacklogTooHigh)"
+      receiver: "slack-business"
+
+# ── RECEIVERS ──────────────────────────────────────────────────────────────────
+receivers:
+  - name: "default-email"
+    email_configs:
+      - to: "team@clinic.com"
+        subject: "[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}"
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Labels: {{ range .Labels.SortedPairs }} {{ .Name }}={{ .Value }} {{ end }}
+          {{ end }}
+
+  - name: "slack-critical"
+    slack_configs:
+      - api_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+        channel: "#clinic-alerts-critical"
+        title: "{{ .GroupLabels.alertname }}"
+        text: "{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}"
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+
+  - name: "slack-business"
+    slack_configs:
+      - api_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+        channel: "#clinic-ops"
+
+# ── INHIBITION ─────────────────────────────────────────────────────────────────
+# If the service is DOWN, suppress all other alerts about that service.
+# (No point alerting on high latency if the service is completely unavailable)
+inhibit_rules:
+  - source_match:
+      alertname: "ClinicApiDown"
+      severity: "critical"
+    target_match:
+      severity: "warning"
+    equal: ["instance"]    # Only inhibit alerts from the same instance
